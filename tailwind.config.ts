@@ -23,6 +23,9 @@ export default {
 				sans: ['Inter', 'system-ui', 'sans-serif'],
 				display: ['Space Grotesk', 'system-ui', 'sans-serif'],
 			},
+			screens: {
+				'xs': '475px',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -98,11 +101,24 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' }
+				},
+				'spin': {
+					to: { transform: 'rotate(360deg)' }
+				},
+				'ping': {
+					'75%, 100%': { transform: 'scale(2)', opacity: '0' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'spin': 'spin 1s linear infinite',
+				'ping': 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite'
 			}
 		}
 	},
