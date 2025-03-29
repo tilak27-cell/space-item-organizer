@@ -90,12 +90,31 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-medium tracking-tight;
+  }
+}
+
+/* Custom font family definitions */
+@layer base {
+  :root {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .font-sans {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .font-display {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
   }
 }
 
 .space-card {
-  @apply bg-white rounded-lg border border-gray-200 shadow;
+  @apply bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow;
 }
 
 .action-button {
