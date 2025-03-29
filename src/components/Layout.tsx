@@ -11,7 +11,7 @@ const Layout: React.FC = () => {
   };
   
   return (
-    <div className="flex min-h-screen bg-space-darker-blue text-white">
+    <div className="flex min-h-screen bg-white text-gray-800">
       <Sidebar 
         isMobileMenuOpen={isMobileMenuOpen} 
         toggleMobileMenu={toggleMobileMenu} 

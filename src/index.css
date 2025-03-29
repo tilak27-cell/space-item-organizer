@@ -35,7 +35,7 @@
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 210 40% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
@@ -90,12 +90,12 @@
   }
 
   body {
-    @apply bg-space-darker-blue text-foreground;
+    @apply bg-background text-foreground;
   }
 }
 
 .space-card {
-  @apply bg-space-dark-blue rounded-lg border border-gray-800 shadow;
+  @apply bg-white rounded-lg border border-gray-200 shadow;
 }
 
 .action-button {

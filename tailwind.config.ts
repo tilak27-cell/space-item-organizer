@@ -65,8 +65,8 @@ export default {
 				},
 				space: {
 					'blue': '#3B82F6',
-					'dark-blue': '#101827',
-					'darker-blue': '#0F172A',
+					'dark-blue': '#EBF4FF',
+					'darker-blue': '#F8FAFC',
 					'red': '#EF4444',
 					'green': '#10B981',
 					'yellow': '#F59E0B',
