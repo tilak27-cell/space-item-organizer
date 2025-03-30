@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CargoItem, StorageContainer, ActionLog, PlacementRecommendation, RearrangementPlan, Priority, Status } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { 
+  generatePlacementRecommendations, 
+  generateRearrangementPlan, 
+  optimizeItemRetrieval,
+  identifyExpiringItems,
+  simulateTimePassed,
+  generateWasteManifest
+} from '@/utils/cargoAlgorithms';
 
 interface SpaceCargoContextType {
   items: CargoItem[];
@@ -8,6 +16,8 @@ interface SpaceCargoContextType {
   logs: ActionLog[];
   recommendations: PlacementRecommendation[];
   rearrangementPlan: RearrangementPlan | null;
+  expiringItems: CargoItem[];
+  wasteManifest: any;
   
   addItem: (item: Omit<CargoItem, 'id' | 'lastModified' | 'usageCount'>) => void;
   updateItem: (id: string, updates: Partial<CargoItem>) => void;
@@ -27,6 +37,9 @@ interface SpaceCargoContextType {
   getItemsByPriority: (priority: Priority) => CargoItem[];
   getWasteItems: () => CargoItem[];
   getActiveItems: () => CargoItem[];
+  searchItems: (query: string) => CargoItem[];
+  executeRearrangementPlan: () => void;
+  prepareWasteForUndocking: () => void;
 }
 
 const SpaceCargoContext = createContext<SpaceCargoContextType | undefined>(undefined);
@@ -235,6 +248,8 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [logs, setLogs] = useState<ActionLog[]>(sampleLogs);
   const [recommendations, setRecommendations] = useState<PlacementRecommendation[]>([]);
   const [rearrangementPlan, setRearrangementPlan] = useState<RearrangementPlan | null>(null);
+  const [expiringItems, setExpiringItems] = useState<CargoItem[]>([]);
+  const [wasteManifest, setWasteManifest] = useState<any>(null);
 
   const addItem = (item: Omit<CargoItem, 'id' | 'lastModified' | 'usageCount'>) => {
     const newItem: CargoItem = {
@@ -595,39 +610,52 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const simulateDay = () => {
     const today = new Date();
     
-    setItems((prev) => 
-      prev.map((item) => {
-        if (item.expirationDate && item.expirationDate <= today && item.status !== 'waste') {
-          setTimeout(() => {
-            addLog({
-              action: 'dispose',
-              itemId: item.id,
-              itemName: item.name,
-              user: 'System',
-              details: `${item.name} has expired and has been marked as waste`
-            });
-          }, 0);
-          
-          return { ...item, status: 'waste', lastModified: today };
-        }
-        return item;
-      })
+    const simulatedItems = simulateTimePassed(items, 1);
+    setItems(simulatedItems);
+    
+    const newlyExpiredItems = simulatedItems.filter(item => 
+      item.status === 'waste' && 
+      items.find(oldItem => oldItem.id === item.id)?.status !== 'waste'
     );
+    
+    newlyExpiredItems.forEach(item => {
+      addLog({
+        action: 'dispose',
+        itemId: item.id,
+        itemName: item.name,
+        user: 'System',
+        details: `${item.name} has expired and has been marked as waste`
+      });
+    });
     
     toast({
       title: "Day Simulated",
-      description: "One day has been simulated, checking for expirations",
+      description: `One day has been simulated, checking for expirations. ${newlyExpiredItems.length} items expired.`,
     });
   };
 
   const simulateDays = (days: number) => {
-    for (let i = 0; i < days; i++) {
-      simulateDay();
-    }
+    const simulatedItems = simulateTimePassed(items, days);
+    setItems(simulatedItems);
+    
+    const newlyExpiredItems = simulatedItems.filter(item => 
+      item.status === 'waste' && 
+      items.find(oldItem => oldItem.id === item.id)?.status !== 'waste'
+    );
+    
+    newlyExpiredItems.forEach(item => {
+      addLog({
+        action: 'dispose',
+        itemId: item.id,
+        itemName: item.name,
+        user: 'System',
+        details: `${item.name} has expired and has been marked as waste`
+      });
+    });
     
     toast({
       title: "Multiple Days Simulated",
-      description: `${days} days have been simulated`,
+      description: `${days} days have been simulated. ${newlyExpiredItems.length} items expired.`,
     });
   };
 
@@ -647,75 +675,84 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return items.filter((item) => item.status !== 'waste');
   };
 
-  useEffect(() => {
-    const availableContainers = containers.filter((container) => 
-      container.usedCapacity < container.capacity
-    );
+  const searchItems = (query: string) => {
+    return optimizeItemRetrieval(query, items);
+  };
+
+  const executeRearrangementPlan = () => {
+    if (!rearrangementPlan) return;
     
-    const newRecommendations: PlacementRecommendation[] = items
-      .filter((item) => item.status === 'in-transit')
-      .map((item) => {
-        const bestContainer = availableContainers
-          .filter((container) => container.capacity - container.usedCapacity >= item.volume)
-          .sort((a, b) => {
-            if (item.priority === 'high') {
-              return a.items.length - b.items.length;
-            } else {
-              return (b.capacity - b.usedCapacity) - (a.capacity - a.usedCapacity);
-            }
-          })[0];
-        
-        if (bestContainer) {
-          return {
-            itemId: item.id,
-            itemName: item.name,
-            recommendedContainer: bestContainer.name,
-            reason: item.priority === 'high'
-              ? 'High priority item placed in most accessible location'
-              : 'Placed based on available space and priority'
-          };
-        }
-        
-        return {
-          itemId: item.id,
-          itemName: item.name,
-          recommendedContainer: 'Requires rearrangement',
-          reason: 'No suitable container available with current arrangement'
-        };
+    rearrangementPlan.steps.forEach(step => {
+      const item = items.find(i => i.id === step.itemId);
+      if (item) {
+        updateItem(item.id, { location: step.toLocation });
+      }
+    });
+    
+    toast({
+      title: "Rearrangement Complete",
+      description: `${rearrangementPlan.steps.length} items have been rearranged`,
+    });
+    
+    setRearrangementPlan(null);
+  };
+
+  const prepareWasteForUndocking = () => {
+    const wasteItems = getWasteItems();
+    const undockingLocation = "Undocking Module";
+    
+    if (wasteItems.length === 0) {
+      toast({
+        title: "No Waste Items",
+        description: "There are no waste items to prepare for undocking",
       });
+      return;
+    }
     
+    wasteItems.forEach(item => {
+      updateItem(item.id, { location: undockingLocation });
+    });
+    
+    const manifest = generateWasteManifest(wasteItems);
+    setWasteManifest(manifest);
+    
+    toast({
+      title: "Waste Prepared for Undocking",
+      description: `${wasteItems.length} waste items have been moved to the Undocking Module`,
+    });
+    
+    addLog({
+      action: 'relocate',
+      itemId: 'batch',
+      itemName: 'Waste Batch',
+      location: undockingLocation,
+      user: 'Current User',
+      details: `Moved ${wasteItems.length} waste items to Undocking Module for disposal`
+    });
+  };
+
+  useEffect(() => {
+    const newRecommendations = generatePlacementRecommendations(items, containers);
     setRecommendations(newRecommendations);
     
     const itemsNeedingRearrangement = newRecommendations.filter(
-      (rec) => rec.recommendedContainer === 'Requires rearrangement'
+      rec => rec.recommendedContainer === 'Requires rearrangement'
     );
     
     if (itemsNeedingRearrangement.length > 0) {
-      const movableItems = items.filter((item) => 
-        item.priority === 'low' && item.status === 'stored'
-      );
-      
-      if (movableItems.length > 0) {
-        const plan: RearrangementPlan = {
-          steps: movableItems.slice(0, itemsNeedingRearrangement.length).map((item, index) => {
-            const transitItem = items.find((i) => i.id === itemsNeedingRearrangement[index].itemId);
-            return {
-              itemId: item.id,
-              itemName: item.name,
-              fromLocation: item.location,
-              toLocation: 'Temporary Storage',
-              priority: item.priority
-            };
-          }),
-          reason: 'Low priority items need to be relocated to make space for incoming items'
-        };
-        
-        setRearrangementPlan(plan);
-      } else {
-        setRearrangementPlan(null);
-      }
+      const inTransitItems = items.filter(item => item.status === 'in-transit');
+      const newRearrangementPlan = generateRearrangementPlan(items, containers, inTransitItems);
+      setRearrangementPlan(newRearrangementPlan);
     } else {
       setRearrangementPlan(null);
+    }
+    
+    const newExpiringItems = identifyExpiringItems(items);
+    setExpiringItems(newExpiringItems);
+    
+    const wasteItems = getWasteItems();
+    if (wasteItems.length > 0) {
+      setWasteManifest(generateWasteManifest(wasteItems));
     }
   }, [items, containers]);
 
@@ -727,6 +764,8 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         logs,
         recommendations,
         rearrangementPlan,
+        expiringItems,
+        wasteManifest,
         addItem,
         updateItem,
         retrieveItem,
@@ -740,7 +779,10 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         getItemsByStatus,
         getItemsByPriority,
         getWasteItems,
-        getActiveItems
+        getActiveItems,
+        searchItems,
+        executeRearrangementPlan,
+        prepareWasteForUndocking
       }}
     >
       {children}

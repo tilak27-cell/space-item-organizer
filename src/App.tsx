@@ -20,6 +20,9 @@ import TimeSimulation from "./pages/TimeSimulation";
 import Logs from "./pages/Logs";
 import NotFound from "./pages/NotFound";
 
+// Add styles for improved text visibility
+import "./styles/theme.css";
+
 const queryClient = new QueryClient();
 
 // Animated wrapper for route transitions

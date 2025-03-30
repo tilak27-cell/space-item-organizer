@@ -4,19 +4,36 @@ import { Trash, Box, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSpaceCargo } from '@/contexts/SpaceCargoContext';
+import { useToast } from "@/hooks/use-toast";
 import ItemCard from '@/components/ItemCard';
 
 const WasteManagement = () => {
-  const { getWasteItems, getActiveItems, items, exportCurrentArrangement } = useSpaceCargo();
+  const { 
+    getWasteItems, 
+    getActiveItems, 
+    items, 
+    exportCurrentArrangement, 
+    prepareWasteForUndocking,
+    expiringItems,
+    wasteManifest
+  } = useSpaceCargo();
+  
+  const { toast } = useToast();
   const [showManifestDialog, setShowManifestDialog] = useState(false);
   
   const wasteItems = getWasteItems();
   const activeItems = getActiveItems();
   
-  // Identify items that are close to expiration or depletion (simulated)
-  const atRiskItems = items
-    .filter(item => item.status !== 'waste')
-    .slice(0, 3); // Just show a few for demo purposes
+  // Use the identified expiring items
+  const atRiskItems = expiringItems.slice(0, 3); // Show up to 3 expiring items
+  
+  const handlePrepareWaste = () => {
+    prepareWasteForUndocking();
+    toast({
+      title: "Waste Prepared for Undocking",
+      description: `${wasteItems.length} waste items have been moved to the Undocking Module`,
+    });
+  };
   
   return (
     <div className="container mx-auto">
@@ -85,6 +102,7 @@ const WasteManagement = () => {
           <Button 
             className="w-full bg-red-600 text-white hover:bg-red-700 mb-6"
             disabled={wasteItems.length === 0}
+            onClick={handlePrepareWaste}
           >
             <Trash className="h-5 w-5 mr-2" />
             Move All Waste to Undocking Module
@@ -115,7 +133,9 @@ const WasteManagement = () => {
                     </div>
                     <div className="mt-2 text-sm">
                       <p className="text-yellow-500">
-                        {Math.random() > 0.5 ? 'Approaching expiration' : 'Low usage remaining'}
+                        {item.expirationDate ? 
+                          `Expires on ${item.expirationDate.toLocaleDateString()}` : 
+                          'Low usage remaining'}
                       </p>
                     </div>
                   </div>
@@ -174,23 +194,31 @@ const WasteManagement = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-gray-400">Total Items:</p>
-                      <p className="text-xl font-medium">{wasteItems.length}</p>
+                      <p className="text-xl font-medium">
+                        {wasteManifest ? wasteManifest.summary.totalItems : wasteItems.length}
+                      </p>
                     </div>
                     <div>
                       <p className="text-gray-400">Total Volume:</p>
                       <p className="text-xl font-medium">
-                        {wasteItems.reduce((total, item) => total + item.volume, 0).toFixed(2)}m³
+                        {wasteManifest 
+                          ? wasteManifest.summary.totalVolume.toFixed(2)
+                          : wasteItems.reduce((total, item) => total + item.volume, 0).toFixed(2)}m³
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-400">Total Weight:</p>
                       <p className="text-xl font-medium">
-                        {wasteItems.reduce((total, item) => total + item.weight, 0).toFixed(2)}kg
+                        {wasteManifest 
+                          ? wasteManifest.summary.totalWeight.toFixed(2)
+                          : wasteItems.reduce((total, item) => total + item.weight, 0).toFixed(2)}kg
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-400">Return Vehicle:</p>
-                      <p className="text-xl font-medium">Progress MS-23</p>
+                      <p className="text-xl font-medium">
+                        {wasteManifest ? wasteManifest.summary.returnVehicle : 'Progress MS-23'}
+                      </p>
                     </div>
                   </div>
                 </div>

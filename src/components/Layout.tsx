@@ -22,9 +22,15 @@ const Layout: React.FC = () => {
     if (!darkMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('dark-mode', 'true');
+      // Add dark theme class to improve text visibility
+      document.body.classList.add('theme-dark');
+      document.body.classList.remove('theme-light');
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('dark-mode', 'false');
+      // Add light theme class to improve text visibility
+      document.body.classList.add('theme-light');
+      document.body.classList.remove('theme-dark');
     }
   };
   
@@ -40,6 +46,11 @@ const Layout: React.FC = () => {
     setDarkMode(savedDarkMode);
     if (savedDarkMode) {
       document.documentElement.classList.add('dark');
+      document.body.classList.add('theme-dark');
+      document.body.classList.remove('theme-light');
+    } else {
+      document.body.classList.add('theme-light');
+      document.body.classList.remove('theme-dark');
     }
     
     const savedAnimationMode = localStorage.getItem('animation-mode') !== 'false';
