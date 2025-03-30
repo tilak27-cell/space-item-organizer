@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CargoItem, StorageContainer, ActionLog, PlacementRecommendation, RearrangementPlan, Priority, Status } from '@/types';
 import { toast } from '@/hooks/use-toast';
@@ -10,25 +9,20 @@ interface SpaceCargoContextType {
   recommendations: PlacementRecommendation[];
   rearrangementPlan: RearrangementPlan | null;
   
-  // Item actions
   addItem: (item: Omit<CargoItem, 'id' | 'lastModified' | 'usageCount'>) => void;
   updateItem: (id: string, updates: Partial<CargoItem>) => void;
   retrieveItem: (id: string) => void;
   markAsWaste: (id: string) => void;
   
-  // Container actions
   addContainer: (container: Omit<StorageContainer, 'id' | 'usedCapacity' | 'items'>) => void;
   
-  // CSV import/export
   importItems: (csv: File) => Promise<void>;
   importContainers: (csv: File) => Promise<void>;
   exportCurrentArrangement: () => void;
   
-  // Time simulation
   simulateDay: () => void;
   simulateDays: (days: number) => void;
   
-  // Filtering
   getItemsByStatus: (status: Status) => CargoItem[];
   getItemsByPriority: (priority: Priority) => CargoItem[];
   getWasteItems: () => CargoItem[];
@@ -37,7 +31,6 @@ interface SpaceCargoContextType {
 
 const SpaceCargoContext = createContext<SpaceCargoContextType | undefined>(undefined);
 
-// Sample data for initial state
 const sampleItems: CargoItem[] = [
   {
     id: '1',
@@ -243,7 +236,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [recommendations, setRecommendations] = useState<PlacementRecommendation[]>([]);
   const [rearrangementPlan, setRearrangementPlan] = useState<RearrangementPlan | null>(null);
 
-  // Add a new cargo item
   const addItem = (item: Omit<CargoItem, 'id' | 'lastModified' | 'usageCount'>) => {
     const newItem: CargoItem = {
       ...item,
@@ -254,7 +246,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setItems((prev) => [...prev, newItem]);
     
-    // Update container
     setContainers((prev) => 
       prev.map((container) => 
         container.name === newItem.location
@@ -267,7 +258,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       )
     );
     
-    // Add log
     addLog({
       action: 'place',
       itemId: newItem.id,
@@ -282,8 +272,7 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       description: `${newItem.name} has been added to ${newItem.location}`,
     });
   };
-  
-  // Add a log entry
+
   const addLog = (log: Omit<ActionLog, 'id' | 'timestamp'>) => {
     const newLog: ActionLog = {
       ...log,
@@ -293,8 +282,7 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setLogs((prev) => [newLog, ...prev]);
   };
-  
-  // Update an existing item
+
   const updateItem = (id: string, updates: Partial<CargoItem>) => {
     setItems((prev) => 
       prev.map((item) => 
@@ -304,11 +292,9 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       )
     );
     
-    // If location changed, update containers
     if (updates.location) {
       const item = items.find((item) => item.id === id);
       if (item) {
-        // Remove from old container
         setContainers((prev) => 
           prev.map((container) => 
             container.name === item.location
@@ -321,7 +307,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           )
         );
         
-        // Add to new container
         setContainers((prev) => 
           prev.map((container) => 
             container.name === updates.location
@@ -334,7 +319,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           )
         );
         
-        // Add log
         addLog({
           action: 'relocate',
           itemId: id,
@@ -351,14 +335,12 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
     }
   };
-  
-  // Retrieve an item (increase usage count)
+
   const retrieveItem = (id: string) => {
     const item = items.find((item) => item.id === id);
     if (item) {
       updateItem(id, { usageCount: item.usageCount + 1 });
       
-      // Add log
       addLog({
         action: 'retrieve',
         itemId: id,
@@ -374,14 +356,12 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
     }
   };
-  
-  // Mark item as waste
+
   const markAsWaste = (id: string) => {
     const item = items.find((item) => item.id === id);
     if (item) {
       updateItem(id, { status: 'waste' });
       
-      // Add log
       addLog({
         action: 'dispose',
         itemId: id,
@@ -396,8 +376,7 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
     }
   };
-  
-  // Add a new container
+
   const addContainer = (container: Omit<StorageContainer, 'id' | 'usedCapacity' | 'items'>) => {
     const newContainer: StorageContainer = {
       ...container,
@@ -413,8 +392,7 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       description: `${newContainer.name} has been added to the system`,
     });
   };
-  
-  // Import items from CSV
+
   const importItems = async (csv: File): Promise<void> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -448,7 +426,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               }
             });
             
-            // Add missing required fields
             const newItem: CargoItem = {
               id: `item-${Date.now()}-${i}`,
               name: item.name || `Imported Item ${i}`,
@@ -465,10 +442,8 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             newItems.push(newItem);
           }
           
-          // Add all the new items
           setItems((prev) => [...prev, ...newItems]);
           
-          // Update containers
           newItems.forEach((item) => {
             setContainers((prev) => 
               prev.map((container) => 
@@ -513,8 +488,7 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       reader.readAsText(csv);
     });
   };
-  
-  // Import containers from CSV
+
   const importContainers = async (csv: File): Promise<void> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -542,7 +516,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               }
             });
             
-            // Add missing required fields
             const newContainer: StorageContainer = {
               id: `container-${Date.now()}-${i}`,
               name: container.name || `Imported Container ${i}`,
@@ -555,7 +528,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             newContainers.push(newContainer);
           }
           
-          // Add all the new containers
           setContainers((prev) => [...prev, ...newContainers]);
           
           toast({
@@ -588,18 +560,15 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       reader.readAsText(csv);
     });
   };
-  
-  // Export current arrangement to CSV
+
   const exportCurrentArrangement = () => {
     try {
-      // Create CSV content
       let csv = 'id,name,priority,status,location,weight,volume,lastModified,usageCount,expirationDate\n';
       
       items.forEach((item) => {
         csv += `${item.id},${item.name},${item.priority},${item.status},${item.location},${item.weight},${item.volume},${item.lastModified.toISOString()},${item.usageCount},${item.expirationDate ? item.expirationDate.toISOString() : ''}\n`;
       });
       
-      // Create download link
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -622,16 +591,13 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
     }
   };
-  
-  // Simulate one day
+
   const simulateDay = () => {
-    // Check for expired items
     const today = new Date();
     
     setItems((prev) => 
       prev.map((item) => {
         if (item.expirationDate && item.expirationDate <= today && item.status !== 'waste') {
-          // Add log for expired item
           setTimeout(() => {
             addLog({
               action: 'dispose',
@@ -653,8 +619,7 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       description: "One day has been simulated, checking for expirations",
     });
   };
-  
-  // Simulate multiple days
+
   const simulateDays = (days: number) => {
     for (let i = 0; i < days; i++) {
       simulateDay();
@@ -665,30 +630,24 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       description: `${days} days have been simulated`,
     });
   };
-  
-  // Get items by status
+
   const getItemsByStatus = (status: Status) => {
     return items.filter((item) => item.status === status);
   };
-  
-  // Get items by priority
+
   const getItemsByPriority = (priority: Priority) => {
     return items.filter((item) => item.priority === priority);
   };
-  
-  // Get all waste items
+
   const getWasteItems = () => {
     return items.filter((item) => item.status === 'waste');
   };
-  
-  // Get all active (non-waste) items
+
   const getActiveItems = () => {
     return items.filter((item) => item.status !== 'waste');
   };
 
-  // Generate placement recommendations when items or containers change
   useEffect(() => {
-    // Simple algorithm for recommendations based on available space and priority
     const availableContainers = containers.filter((container) => 
       container.usedCapacity < container.capacity
     );
@@ -696,15 +655,12 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const newRecommendations: PlacementRecommendation[] = items
       .filter((item) => item.status === 'in-transit')
       .map((item) => {
-        // Find best container for this item based on priority and available space
         const bestContainer = availableContainers
           .filter((container) => container.capacity - container.usedCapacity >= item.volume)
           .sort((a, b) => {
             if (item.priority === 'high') {
-              // For high priority, prefer containers with less items
               return a.items.length - b.items.length;
             } else {
-              // For medium/low priority, prefer containers with more available space
               return (b.capacity - b.usedCapacity) - (a.capacity - a.usedCapacity);
             }
           })[0];
@@ -720,7 +676,6 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           };
         }
         
-        // If no suitable container found, suggest rearrangement
         return {
           itemId: item.id,
           itemName: item.name,
@@ -731,13 +686,11 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setRecommendations(newRecommendations);
     
-    // Generate rearrangement plan if needed
     const itemsNeedingRearrangement = newRecommendations.filter(
       (rec) => rec.recommendedContainer === 'Requires rearrangement'
     );
     
     if (itemsNeedingRearrangement.length > 0) {
-      // Find low priority items that could be moved
       const movableItems = items.filter((item) => 
         item.priority === 'low' && item.status === 'stored'
       );
