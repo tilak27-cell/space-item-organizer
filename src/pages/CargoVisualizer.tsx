@@ -413,7 +413,7 @@ const CargoVisualizer = () => {
                             <div className="rounded-md border border-gray-700 p-2">
                               <p className="text-xs text-gray-400">Items</p>
                               <p className="text-lg font-medium">
-                                {items.filter(i => i.containerId === container.id).length}
+                                {items.filter(i => i.location === container.id).length}
                               </p>
                             </div>
                             <div className="rounded-md border border-gray-700 p-2">

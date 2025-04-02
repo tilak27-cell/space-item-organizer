@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { MissionStatusChart } from '@/components/MissionStatusChart';
-import { ResourceUtilizationChart } from '@/components/ResourceUtilizationChart';
+import MissionStatusChart from '@/components/MissionStatusChart';
+import ResourceUtilizationChart from '@/components/ResourceUtilizationChart';
 import OptimizerRecommendations from '@/components/OptimizerRecommendations';
 import { useSpaceCargo } from '@/contexts/SpaceCargoContext';
 import { AlertCircle, CheckCircle, BarChart2, Rocket, Zap, Settings, Download, UploadCloud } from 'lucide-react';
@@ -15,13 +14,11 @@ const MissionControl = () => {
   const { containers, items } = useSpaceCargo();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Mock function for cargo placement optimization since it doesn't exist in the context
   const optimizeCargoPlacement = () => {
     console.log("Optimizing cargo placement...");
     // In a real implementation, this would call the context's function
   };
   
-  // Recommendation mock data
   const recommendations = [
     {
       id: 1,
@@ -46,7 +43,6 @@ const MissionControl = () => {
     }
   ];
   
-  // Mission stats
   const missionStats = {
     daysInOrbit: 136,
     daysRemaining: 92,
@@ -56,7 +52,6 @@ const MissionControl = () => {
     nextResupply: "18 days"
   };
   
-  // Alerts
   const missionAlerts = [
     {
       id: 1,
@@ -98,7 +93,6 @@ const MissionControl = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {/* Mission Progress */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,7 +131,6 @@ const MissionControl = () => {
           </Card>
         </motion.div>
         
-        {/* Storage Status */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -182,7 +175,6 @@ const MissionControl = () => {
           </Card>
         </motion.div>
         
-        {/* System Status */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -251,7 +243,7 @@ const MissionControl = () => {
                   <CardDescription>Storage and supplies analysis</CardDescription>
                 </CardHeader>
                 <CardContent className="h-80">
-                  <ResourceUtilizationChart />
+                  <ResourceUtilizationChart type="storage" />
                 </CardContent>
               </Card>
             </TabsContent>
