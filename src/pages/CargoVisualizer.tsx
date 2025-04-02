@@ -1,21 +1,18 @@
+
 import React, { useRef, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useSpaceCargo } from '@/contexts/SpaceCargoContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BoxIcon, Search, RotateCw, Layers, Box, Maximize2, Minimize2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BoxIcon, Box } from 'lucide-react';
 
 const CargoVisualizer = () => {
   const { containers, items } = useSpaceCargo();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedContainer, setSelectedContainer] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<string>('3d');
-  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
-  const [heatmap, setHeatmap] = useState<boolean>(false);
-  const [autoRotate, setAutoRotate] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<string>('2d');
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -30,43 +27,21 @@ const CargoVisualizer = () => {
     canvas.height = canvas.clientHeight;
     
     if (viewMode === '3d') {
-      drawSimulated3D(ctx, canvas.width, canvas.height);
+      drawSimplified3D(ctx, canvas.width, canvas.height);
     } else {
-      drawSimulated2D(ctx, canvas.width, canvas.height);
+      drawSimplified2D(ctx, canvas.width, canvas.height);
     }
-    
-    let animationId: number;
-    if (autoRotate) {
-      let rotation = 0;
-      const animate = () => {
-        rotation += 0.01;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        if (viewMode === '3d') {
-          drawSimulated3D(ctx, canvas.width, canvas.height, rotation);
-        } else {
-          drawSimulated2D(ctx, canvas.width, canvas.height);
-        }
-        
-        animationId = requestAnimationFrame(animate);
-      };
-      animate();
-    }
-    
-    return () => {
-      if (animationId) cancelAnimationFrame(animationId);
-    };
-  }, [selectedContainer, viewMode, heatmap, autoRotate, containers, items]);
+  }, [selectedContainer, viewMode, containers, items]);
   
-  const drawSimulated3D = (ctx: CanvasRenderingContext2D, width: number, height: number, rotation = 0) => {
+  const drawSimplified3D = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const centerX = width / 2;
     const centerY = height / 2;
     const size = Math.min(width, height) * 0.4;
     
     ctx.save();
     ctx.translate(centerX, centerY);
-    ctx.rotate(rotation);
     
+    // Simple box representation
     const faces = [
       { points: [[-size, -size], [size, -size], [size, size], [-size, size]], color: 'rgba(59, 130, 246, 0.2)', stroke: '#3B82F6' },
       { points: [[size, -size], [size * 1.3, -size * 0.7], [size * 1.3, size * 0.7], [size, size]], color: 'rgba(59, 130, 246, 0.3)', stroke: '#3B82F6' },
@@ -87,12 +62,12 @@ const CargoVisualizer = () => {
       ctx.stroke();
     });
     
-    const numItems = Math.min(items.length, 15);
+    // Draw some boxes inside to represent items
+    const numItems = Math.min(items.length, 8);
     for (let i = 0; i < numItems; i++) {
-      const itemSize = size * 0.15;
-      const x = (Math.random() * 1.6 - 0.8) * size;
-      const y = (Math.random() * 1.6 - 0.8) * size;
-      const z = Math.random() * 0.3;
+      const itemSize = size * 0.2;
+      const x = (Math.random() * 1.6 - 0.8) * size * 0.8;
+      const y = (Math.random() * 1.6 - 0.8) * size * 0.8;
       
       const priorityColors = {
         high: 'rgba(239, 68, 68, 0.8)',
@@ -106,36 +81,29 @@ const CargoVisualizer = () => {
       ctx.fillStyle = color;
       ctx.strokeStyle = 'white';
       ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.9 - z * 0.3;
       
       ctx.fillRect(x - itemSize/2, y - itemSize/2, itemSize, itemSize);
       ctx.strokeRect(x - itemSize/2, y - itemSize/2, itemSize, itemSize);
     }
-    
-    ctx.globalAlpha = 1;
-    
-    const gradient = ctx.createRadialGradient(0, 0, size * 0.1, 0, 0, size * 2);
-    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.1)');
-    gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(-size * 2, -size * 2, size * 4, size * 4);
     
     ctx.restore();
     
     drawGrid(ctx, width, height);
   };
   
-  const drawSimulated2D = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+  const drawSimplified2D = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const centerX = width / 2;
     const centerY = height / 2;
     const size = Math.min(width, height) * 0.4;
     
+    // Draw container outline
     ctx.beginPath();
     ctx.rect(centerX - size, centerY - size, size * 2, size * 2);
     ctx.strokeStyle = '#3B82F6';
     ctx.lineWidth = 2;
     ctx.stroke();
     
+    // Draw simple grid
     const sections = 4;
     for (let i = 1; i < sections; i++) {
       ctx.beginPath();
@@ -145,13 +113,14 @@ const CargoVisualizer = () => {
       ctx.stroke();
     }
     
-    const numItems = Math.min(items.length, 25);
-    const itemWidth = (size * 2) / 5;
-    const itemHeight = (size * 2) / 5;
+    // Draw items as simple squares
+    const numItems = Math.min(items.length, 16);
+    const itemWidth = (size * 2) / 4;
+    const itemHeight = (size * 2) / 4;
     
     for (let i = 0; i < numItems; i++) {
-      const col = i % 5;
-      const row = Math.floor(i / 5);
+      const col = i % 4;
+      const row = Math.floor(i / 4);
       
       const x = centerX - size + col * itemWidth;
       const y = centerY - size + row * itemHeight;
@@ -169,19 +138,6 @@ const CargoVisualizer = () => {
       ctx.fillRect(x + 4, y + 4, itemWidth - 8, itemHeight - 8);
       ctx.strokeStyle = 'white';
       ctx.strokeRect(x + 4, y + 4, itemWidth - 8, itemHeight - 8);
-      
-      ctx.fillStyle = 'white';
-      ctx.font = '10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const itemName = items[i]?.name || '';
-      const shortName = itemName.length > 8 ? itemName.substring(0, 5) + '...' : itemName;
-      ctx.fillText(shortName, x + itemWidth/2, y + itemHeight/2);
-    }
-    
-    if (heatmap) {
-      const heatmapData = generateSimulatedHeatmap(width, height, centerX, centerY, size);
-      ctx.putImageData(heatmapData, 0, 0);
     }
   };
   
@@ -204,58 +160,12 @@ const CargoVisualizer = () => {
     ctx.stroke();
   };
   
-  const generateSimulatedHeatmap = (width: number, height: number, centerX: number, centerY: number, size: number) => {
-    const imageData = new ImageData(width, height);
-    const data = imageData.data;
-    
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const index = (y * width + x) * 4;
-        
-        const dx = x - centerX;
-        const dy = y - centerY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (Math.abs(dx) < size && Math.abs(dy) < size) {
-          const noise = Math.sin(x / 10) * Math.cos(y / 10) * 20;
-          const intensity = Math.max(0, 255 - distance * 0.5 - noise);
-          
-          data[index] = intensity;
-          data[index + 1] = 0;
-          data[index + 2] = 100;
-          data[index + 3] = intensity * 0.4;
-        } else {
-          data[index + 3] = 0;
-        }
-      }
-    }
-    
-    return imageData;
-  };
-  
-  const toggleFullScreen = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    if (!isFullScreen) {
-      if (canvas.requestFullscreen) {
-        canvas.requestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-    
-    setIsFullScreen(!isFullScreen);
-  };
-  
   return (
     <div className="container mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">3D Cargo Visualizer</h1>
-          <p className="text-gray-400">Interactive visualization of cargo placement</p>
+          <h1 className="text-3xl font-bold">Cargo Visualizer</h1>
+          <p className="text-gray-400">Visualization of cargo placement</p>
         </div>
       </div>
       
@@ -267,38 +177,6 @@ const CargoVisualizer = () => {
                 <BoxIcon className="mr-2 h-5 w-5 text-space-blue" />
                 Cargo Visualization
               </CardTitle>
-              
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setAutoRotate(!autoRotate)}
-                  className={autoRotate ? "bg-space-blue/20" : ""}
-                >
-                  <RotateCw className="h-4 w-4 mr-1" />
-                  Auto-Rotate
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setHeatmap(!heatmap)}
-                  className={heatmap ? "bg-space-blue/20" : ""}
-                >
-                  <Layers className="h-4 w-4 mr-1" />
-                  Heatmap
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={toggleFullScreen}
-                >
-                  {isFullScreen ? (
-                    <Minimize2 className="h-4 w-4" />
-                  ) : (
-                    <Maximize2 className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
             </div>
           </CardHeader>
           
@@ -321,7 +199,7 @@ const CargoVisualizer = () => {
                   </Select>
                 </div>
                 
-                <Tabs defaultValue="3d" value={viewMode} onValueChange={setViewMode}>
+                <Tabs defaultValue="2d" value={viewMode} onValueChange={setViewMode}>
                   <TabsList>
                     <TabsTrigger value="3d">3D View</TabsTrigger>
                     <TabsTrigger value="2d">Top View</TabsTrigger>
@@ -340,32 +218,20 @@ const CargoVisualizer = () => {
               </div>
             </div>
             
-            <motion.div 
-              className="relative w-full h-[500px] border border-gray-800 rounded-lg overflow-hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
+            <div className="relative w-full h-[500px] border border-gray-800 rounded-lg overflow-hidden">
               <canvas 
                 ref={canvasRef} 
                 className="w-full h-full bg-gray-900/50"
               />
-              
-              <div className="absolute bottom-2 right-2 text-xs text-gray-400 bg-black/50 px-2 py-1 rounded">
-                Interactive Visualization
-              </div>
-            </motion.div>
+            </div>
             
             <div className="mt-4 text-sm text-gray-400">
-              <p>
-                Note: This is a simplified visualization. Click and drag to rotate in 3D view. 
-                Use mouse wheel to zoom.
-              </p>
+              <p>Simple visualization of cargo placement.</p>
             </div>
           </CardContent>
         </Card>
         
-        <div className="space-y-6">
+        <div>
           <Card className="space-card">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -425,69 +291,6 @@ const CargoVisualizer = () => {
                       ))}
                   </div>
                 )}
-                
-                <Button className="w-full" variant="outline">
-                  <Search className="h-4 w-4 mr-2" />
-                  Find Item
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="space-card">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Layers className="mr-2 h-5 w-5 text-yellow-500" />
-                Item Distribution
-              </CardTitle>
-              <CardDescription>By priority level</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-sm">High Priority</span>
-                    <span className="text-sm font-medium text-red-500">
-                      {items.filter(i => i.priority === 'high').length}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-1.5">
-                    <div 
-                      className="h-1.5 rounded-full bg-red-500"
-                      style={{ width: `${(items.filter(i => i.priority === 'high').length / items.length * 100) || 0}%` }}
-                    ></div>
-                  </div>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Medium Priority</span>
-                    <span className="text-sm font-medium text-yellow-500">
-                      {items.filter(i => i.priority === 'medium').length}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-1.5">
-                    <div 
-                      className="h-1.5 rounded-full bg-yellow-500"
-                      style={{ width: `${(items.filter(i => i.priority === 'medium').length / items.length * 100) || 0}%` }}
-                    ></div>
-                  </div>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Low Priority</span>
-                    <span className="text-sm font-medium text-green-500">
-                      {items.filter(i => i.priority === 'low').length}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-1.5">
-                    <div 
-                      className="h-1.5 rounded-full bg-green-500"
-                      style={{ width: `${(items.filter(i => i.priority === 'low').length / items.length * 100) || 0}%` }}
-                    ></div>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
