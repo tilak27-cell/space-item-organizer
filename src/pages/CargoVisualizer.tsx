@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSpaceCargo } from '@/contexts/SpaceCargoContext';
@@ -7,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Cube, Search, RotateCw, Layers, Box, Maximize2, Minimize2 } from 'lucide-react';
+import { BoxIcon, Search, RotateCw, Layers, Box, Maximize2, Minimize2 } from 'lucide-react';
 
 const CargoVisualizer = () => {
   const { containers, items } = useSpaceCargo();
@@ -18,8 +17,6 @@ const CargoVisualizer = () => {
   const [heatmap, setHeatmap] = useState<boolean>(false);
   const [autoRotate, setAutoRotate] = useState<boolean>(true);
   
-  // Visualization logic would use Three.js in a real implementation
-  // Here we'll simulate with canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -27,21 +24,17 @@ const CargoVisualizer = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Set canvas dimensions
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
     
-    // Draw simulated 3D cargo visualization
     if (viewMode === '3d') {
       drawSimulated3D(ctx, canvas.width, canvas.height);
     } else {
       drawSimulated2D(ctx, canvas.width, canvas.height);
     }
     
-    // Animation loop for rotation
     let animationId: number;
     if (autoRotate) {
       let rotation = 0;
@@ -65,28 +58,21 @@ const CargoVisualizer = () => {
     };
   }, [selectedContainer, viewMode, heatmap, autoRotate, containers, items]);
   
-  // Simulated 3D drawing
   const drawSimulated3D = (ctx: CanvasRenderingContext2D, width: number, height: number, rotation = 0) => {
     const centerX = width / 2;
     const centerY = height / 2;
     const size = Math.min(width, height) * 0.4;
     
-    // Draw container as a 3D cube
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(rotation);
     
-    // Draw cube faces with perspective
     const faces = [
-      // Front face
       { points: [[-size, -size], [size, -size], [size, size], [-size, size]], color: 'rgba(59, 130, 246, 0.2)', stroke: '#3B82F6' },
-      // Right face
       { points: [[size, -size], [size * 1.3, -size * 0.7], [size * 1.3, size * 0.7], [size, size]], color: 'rgba(59, 130, 246, 0.3)', stroke: '#3B82F6' },
-      // Top face
       { points: [[-size, -size], [size, -size], [size * 1.3, -size * 0.7], [-size * 0.7, -size * 1.3]], color: 'rgba(59, 130, 246, 0.4)', stroke: '#3B82F6' },
     ];
     
-    // Draw basic faces
     faces.forEach(face => {
       ctx.beginPath();
       ctx.moveTo(face.points[0][0], face.points[0][1]);
@@ -101,15 +87,13 @@ const CargoVisualizer = () => {
       ctx.stroke();
     });
     
-    // Draw some cargo items inside
     const numItems = Math.min(items.length, 15);
     for (let i = 0; i < numItems; i++) {
       const itemSize = size * 0.15;
       const x = (Math.random() * 1.6 - 0.8) * size;
       const y = (Math.random() * 1.6 - 0.8) * size;
-      const z = Math.random() * 0.3; // Simulated depth
+      const z = Math.random() * 0.3;
       
-      // Different colors based on priority
       const priorityColors = {
         high: 'rgba(239, 68, 68, 0.8)',
         medium: 'rgba(245, 158, 11, 0.8)',
@@ -119,20 +103,17 @@ const CargoVisualizer = () => {
       const itemPriority = items[i]?.priority || 'medium';
       const color = priorityColors[itemPriority as keyof typeof priorityColors];
       
-      // Draw simple box
       ctx.fillStyle = color;
       ctx.strokeStyle = 'white';
       ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.9 - z * 0.3; // Fade based on depth
+      ctx.globalAlpha = 0.9 - z * 0.3;
       
       ctx.fillRect(x - itemSize/2, y - itemSize/2, itemSize, itemSize);
       ctx.strokeRect(x - itemSize/2, y - itemSize/2, itemSize, itemSize);
     }
     
-    // Reset alpha
     ctx.globalAlpha = 1;
     
-    // Draw glowing effects for futuristic look
     const gradient = ctx.createRadialGradient(0, 0, size * 0.1, 0, 0, size * 2);
     gradient.addColorStop(0, 'rgba(59, 130, 246, 0.1)');
     gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
@@ -141,24 +122,20 @@ const CargoVisualizer = () => {
     
     ctx.restore();
     
-    // Add grid overlay
     drawGrid(ctx, width, height);
   };
   
-  // Simulated 2D drawing (top-down view)
   const drawSimulated2D = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const centerX = width / 2;
     const centerY = height / 2;
     const size = Math.min(width, height) * 0.4;
     
-    // Draw container outline
     ctx.beginPath();
     ctx.rect(centerX - size, centerY - size, size * 2, size * 2);
     ctx.strokeStyle = '#3B82F6';
     ctx.lineWidth = 2;
     ctx.stroke();
     
-    // Draw container sections
     const sections = 4;
     for (let i = 1; i < sections; i++) {
       ctx.beginPath();
@@ -168,7 +145,6 @@ const CargoVisualizer = () => {
       ctx.stroke();
     }
     
-    // Draw items as blocks
     const numItems = Math.min(items.length, 25);
     const itemWidth = (size * 2) / 5;
     const itemHeight = (size * 2) / 5;
@@ -180,7 +156,6 @@ const CargoVisualizer = () => {
       const x = centerX - size + col * itemWidth;
       const y = centerY - size + row * itemHeight;
       
-      // Different colors based on priority
       const priorityColors = {
         high: 'rgba(239, 68, 68, 0.8)',
         medium: 'rgba(245, 158, 11, 0.8)',
@@ -190,13 +165,11 @@ const CargoVisualizer = () => {
       const itemPriority = items[i]?.priority || 'medium';
       const color = priorityColors[itemPriority as keyof typeof priorityColors];
       
-      // Draw box
       ctx.fillStyle = color;
       ctx.fillRect(x + 4, y + 4, itemWidth - 8, itemHeight - 8);
       ctx.strokeStyle = 'white';
       ctx.strokeRect(x + 4, y + 4, itemWidth - 8, itemHeight - 8);
       
-      // Draw item ID or abbreviated name
       ctx.fillStyle = 'white';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
@@ -206,27 +179,23 @@ const CargoVisualizer = () => {
       ctx.fillText(shortName, x + itemWidth/2, y + itemHeight/2);
     }
     
-    // Draw heatmap overlay
     if (heatmap) {
       const heatmapData = generateSimulatedHeatmap(width, height, centerX, centerY, size);
       ctx.putImageData(heatmapData, 0, 0);
     }
   };
   
-  // Draw grid overlay
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const gridSize = 30;
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.lineWidth = 1;
     
-    // Vertical lines
     for (let x = 0; x < width; x += gridSize) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
     }
     
-    // Horizontal lines
     for (let y = 0; y < height; y += gridSize) {
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
@@ -235,7 +204,6 @@ const CargoVisualizer = () => {
     ctx.stroke();
   };
   
-  // Generate simulated heatmap data
   const generateSimulatedHeatmap = (width: number, height: number, centerX: number, centerY: number, size: number) => {
     const imageData = new ImageData(width, height);
     const data = imageData.data;
@@ -244,24 +212,19 @@ const CargoVisualizer = () => {
       for (let x = 0; x < width; x++) {
         const index = (y * width + x) * 4;
         
-        // Calculate distance from center to determine heat intensity
         const dx = x - centerX;
         const dy = y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Only show heatmap within container bounds
         if (Math.abs(dx) < size && Math.abs(dy) < size) {
-          // Add some variation
           const noise = Math.sin(x / 10) * Math.cos(y / 10) * 20;
           const intensity = Math.max(0, 255 - distance * 0.5 - noise);
           
-          // Red heat map with some transparency
-          data[index] = intensity;       // R
-          data[index + 1] = 0;           // G
-          data[index + 2] = 100;         // B
-          data[index + 3] = intensity * 0.4; // A
+          data[index] = intensity;
+          data[index + 1] = 0;
+          data[index + 2] = 100;
+          data[index + 3] = intensity * 0.4;
         } else {
-          // Outside container is transparent
           data[index + 3] = 0;
         }
       }
@@ -270,7 +233,6 @@ const CargoVisualizer = () => {
     return imageData;
   };
   
-  // Toggle fullscreen
   const toggleFullScreen = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -302,7 +264,7 @@ const CargoVisualizer = () => {
           <CardHeader className="pb-0">
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center">
-                <Cube className="mr-2 h-5 w-5 text-space-blue" />
+                <BoxIcon className="mr-2 h-5 w-5 text-space-blue" />
                 Cargo Visualization
               </CardTitle>
               
@@ -378,7 +340,6 @@ const CargoVisualizer = () => {
               </div>
             </div>
             
-            {/* Canvas for visualization */}
             <motion.div 
               className="relative w-full h-[500px] border border-gray-800 rounded-lg overflow-hidden"
               initial={{ opacity: 0 }}
@@ -390,7 +351,6 @@ const CargoVisualizer = () => {
                 className="w-full h-full bg-gray-900/50"
               />
               
-              {/* Overlay text showing it's a visualization */}
               <div className="absolute bottom-2 right-2 text-xs text-gray-400 bg-black/50 px-2 py-1 rounded">
                 Interactive Visualization
               </div>
@@ -453,7 +413,7 @@ const CargoVisualizer = () => {
                             <div className="rounded-md border border-gray-700 p-2">
                               <p className="text-xs text-gray-400">Items</p>
                               <p className="text-lg font-medium">
-                                {items.filter(i => i.container === container.id).length}
+                                {items.filter(i => i.containerId === container.id).length}
                               </p>
                             </div>
                             <div className="rounded-md border border-gray-700 p-2">
@@ -484,7 +444,6 @@ const CargoVisualizer = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* High Priority */}
                 <div className="space-y-1">
                   <div className="flex justify-between">
                     <span className="text-sm">High Priority</span>
@@ -500,7 +459,6 @@ const CargoVisualizer = () => {
                   </div>
                 </div>
                 
-                {/* Medium Priority */}
                 <div className="space-y-1">
                   <div className="flex justify-between">
                     <span className="text-sm">Medium Priority</span>
@@ -516,7 +474,6 @@ const CargoVisualizer = () => {
                   </div>
                 </div>
                 
-                {/* Low Priority */}
                 <div className="space-y-1">
                   <div className="flex justify-between">
                     <span className="text-sm">Low Priority</span>

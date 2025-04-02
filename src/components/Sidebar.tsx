@@ -14,7 +14,7 @@ import {
   Clock, 
   FileText,
   Rocket,
-  Cube,
+  BoxIcon,
   BarChart3
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -69,7 +69,7 @@ const navItems = [
   },
   { 
     path: '/cargo-visualizer', 
-    icon: <Cube className="h-5 w-5" />, 
+    icon: <BoxIcon className="h-5 w-5" />, 
     label: '3D Visualizer',
     badge: 'NEW'
   },

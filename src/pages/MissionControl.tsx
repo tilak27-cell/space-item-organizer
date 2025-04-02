@@ -1,308 +1,302 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useSpaceCargo } from '@/contexts/SpaceCargoContext';
-import { Rocket, AlertTriangle, Check, BarChart3, Waves, PieChart, Activity, ShieldCheck } from 'lucide-react';
-import MissionStatusChart from '@/components/MissionStatusChart';
-import ResourceUtilizationChart from '@/components/ResourceUtilizationChart';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { MissionStatusChart } from '@/components/MissionStatusChart';
+import { ResourceUtilizationChart } from '@/components/ResourceUtilizationChart';
 import OptimizerRecommendations from '@/components/OptimizerRecommendations';
+import { useSpaceCargo } from '@/contexts/SpaceCargoContext';
+import { AlertCircle, CheckCircle, BarChart2, Rocket, Zap, Settings, Download, UploadCloud } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const MissionControl = () => {
-  const { items, containers, logs, optimizeCargoPlacement, getWasteItems, getActiveItems } = useSpaceCargo();
-  const [missionStatus, setMissionStatus] = useState('nominal');
-  const [oxygenLevel, setOxygenLevel] = useState(94);
-  const [powerLevel, setPowerLevel] = useState(87);
-  const [fuelLevel, setFuelLevel] = useState(76);
-  const [waterLevel, setWaterLevel] = useState(82);
-  const [recommendations, setRecommendations] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  
-  // Simulate mission metrics
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Small random fluctuations to simulate real-time data
-      setOxygenLevel(prev => Math.min(100, Math.max(70, prev + (Math.random() * 2 - 1))));
-      setPowerLevel(prev => Math.min(100, Math.max(60, prev + (Math.random() * 2 - 1))));
-      setFuelLevel(prev => Math.min(100, Math.max(50, prev - (Math.random() * 0.2))));
-      setWaterLevel(prev => Math.min(100, Math.max(65, prev + (Math.random() * 2 - 1))));
-    }, 5000);
-    
-    // Generate initial alerts
-    setAlerts([
-      {
-        id: 1,
-        type: 'warning',
-        message: 'Oxygen filter efficiency decreased by 3%',
-        time: '10:24 AM',
-        resolved: false
-      },
-      {
-        id: 2,
-        type: 'info',
-        message: 'Scheduled cargo transfer at 14:30',
-        time: '09:15 AM',
-        resolved: true
-      },
-      {
-        id: 3,
-        type: 'critical',
-        message: 'Medical supplies in Module B approaching expiration',
-        time: '08:47 AM',
-        resolved: false
-      }
-    ]);
-    
-    // Generate AI recommendations based on cargo data
-    const wasteItems = getWasteItems();
-    const activeItems = getActiveItems();
-    
-    const newRecommendations = [
-      {
-        id: 1,
-        title: 'Optimize Storage Layout',
-        description: 'Rearranging cargo modules B and C can increase storage efficiency by 12%',
-        impact: 'high',
-        timeEstimate: '45 min',
-      },
-      {
-        id: 2,
-        title: 'Waste Management',
-        description: `Schedule waste disposal for ${wasteItems.length} expired items`,
-        impact: 'medium',
-        timeEstimate: '30 min',
-      },
-      {
-        id: 3,
-        title: 'Critical Items Access',
-        description: 'Move medical supplies to high accessibility zone',
-        impact: 'high',
-        timeEstimate: '20 min',
-      }
-    ];
-    
-    setRecommendations(newRecommendations);
-    
-    return () => clearInterval(interval);
-  }, [getWasteItems, getActiveItems]);
-  
-  // Calculate mission metrics
-  const resourceEfficiency = Math.round((oxygenLevel + powerLevel + fuelLevel + waterLevel) / 4);
-  const storageUtilization = containers.length > 0 
-    ? Math.round((containers.reduce((acc, c) => acc + c.usedCapacity, 0) / containers.reduce((acc, c) => acc + c.capacity, 0)) * 100) 
-    : 0;
-  
-  const getStatusColor = (value) => {
-    if (value > 85) return 'bg-green-500';
-    if (value > 70) return 'bg-yellow-500';
-    return 'bg-red-500';
+  const { containers, items } = useSpaceCargo();
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // Mock function for cargo placement optimization since it doesn't exist in the context
+  const optimizeCargoPlacement = () => {
+    console.log("Optimizing cargo placement...");
+    // In a real implementation, this would call the context's function
   };
   
-  const handleOptimize = () => {
-    optimizeCargoPlacement();
+  // Recommendation mock data
+  const recommendations = [
+    {
+      id: 1,
+      title: "Redistribute High Priority Items",
+      description: "Move 3 high-priority medical supplies to front-accessible containers",
+      impact: "high",
+      timeEstimate: "5 min"
+    },
+    {
+      id: 2,
+      title: "Consolidate Food Storage",
+      description: "Group similar food items to optimize space usage by 15%",
+      impact: "medium",
+      timeEstimate: "15 min"
+    },
+    {
+      id: 3,
+      title: "Tag Expiring Items",
+      description: "Mark 7 items expiring in the next 30 days for easier access",
+      impact: "medium",
+      timeEstimate: "10 min"
+    }
+  ];
+  
+  // Mission stats
+  const missionStats = {
+    daysInOrbit: 136,
+    daysRemaining: 92,
+    storageUtilization: 73,
+    itemsProcessed: 1458,
+    currentAstronauts: 6,
+    nextResupply: "18 days"
   };
+  
+  // Alerts
+  const missionAlerts = [
+    {
+      id: 1,
+      type: "warning",
+      message: "Container B7 approaching capacity (93%)",
+      time: "2 hours ago"
+    },
+    {
+      id: 2,
+      type: "info",
+      message: "Scheduled inventory check in 3 days",
+      time: "1 day ago"
+    },
+    {
+      id: 3,
+      type: "success",
+      message: "Resupply mission schedule confirmed",
+      time: "2 days ago"
+    }
+  ];
   
   return (
     <div className="container mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex justify-between items-center mb-6"
-      >
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Mission Control Center</h1>
-          <p className="text-gray-400">Real-time monitoring and advanced cargo optimization</p>
+          <p className="text-gray-400">Cargo analytics and optimization dashboard</p>
         </div>
-        
-        <div className="flex space-x-2">
-          <Badge variant="outline" className="bg-green-500/20 text-green-500 px-3 py-1 flex items-center gap-1">
-            <Check size={14} />
-            <span>Systems Nominal</span>
-          </Badge>
-          <Button className="bg-space-blue hover:bg-blue-600" onClick={handleOptimize}>
-            <ShieldCheck className="mr-2 h-4 w-4" /> Optimize All Systems
+        <div className="flex space-x-3">
+          <Button variant="outline" className="flex items-center gap-2">
+            <Download size={16} />
+            Export Report
+          </Button>
+          <Button className="flex items-center gap-2">
+            <UploadCloud size={16} />
+            Sync Data
           </Button>
         </div>
-      </motion.div>
-      
-      {/* Mission Status Dashboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <Card className="space-card col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Activity className="mr-2 h-5 w-5 text-space-blue" />
-              Mission Status
-            </CardTitle>
-            <CardDescription>Current mission metrics and performance indicators</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              {/* Oxygen Level */}
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Oxygen</span>
-                  <span className={`text-sm font-medium ${oxygenLevel > 85 ? 'text-green-500' : oxygenLevel > 70 ? 'text-yellow-500' : 'text-red-500'}`}>
-                    {Math.round(oxygenLevel)}%
-                  </span>
-                </div>
-                <Progress value={oxygenLevel} className={getStatusColor(oxygenLevel)} />
-              </div>
-              
-              {/* Power Level */}
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Power</span>
-                  <span className={`text-sm font-medium ${powerLevel > 85 ? 'text-green-500' : powerLevel > 70 ? 'text-yellow-500' : 'text-red-500'}`}>
-                    {Math.round(powerLevel)}%
-                  </span>
-                </div>
-                <Progress value={powerLevel} className={getStatusColor(powerLevel)} />
-              </div>
-              
-              {/* Fuel Level */}
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Fuel</span>
-                  <span className={`text-sm font-medium ${fuelLevel > 85 ? 'text-green-500' : fuelLevel > 70 ? 'text-yellow-500' : 'text-red-500'}`}>
-                    {Math.round(fuelLevel)}%
-                  </span>
-                </div>
-                <Progress value={fuelLevel} className={getStatusColor(fuelLevel)} />
-              </div>
-              
-              {/* Water Level */}
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Water</span>
-                  <span className={`text-sm font-medium ${waterLevel > 85 ? 'text-green-500' : waterLevel > 70 ? 'text-yellow-500' : 'text-red-500'}`}>
-                    {Math.round(waterLevel)}%
-                  </span>
-                </div>
-                <Progress value={waterLevel} className={getStatusColor(waterLevel)} />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <MissionStatusChart />
-              <div>
-                <h3 className="text-md font-medium mb-2">Mission Metrics</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Resource Efficiency</span>
-                    <Badge className={`${resourceEfficiency > 85 ? 'bg-green-500' : 'bg-yellow-500'}`}>
-                      {resourceEfficiency}%
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Storage Utilization</span>
-                    <Badge className={`${storageUtilization > 90 ? 'bg-red-500' : storageUtilization > 75 ? 'bg-yellow-500' : 'bg-green-500'}`}>
-                      {storageUtilization}%
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Cargo Items</span>
-                    <Badge variant="outline">{items.length}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Active Containers</span>
-                    <Badge variant="outline">{containers.length}</Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* AI Recommendations Card */}
-        <Card className="space-card">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Rocket className="mr-2 h-5 w-5 text-purple-500" />
-              AI Recommendations
-            </CardTitle>
-            <CardDescription>System-generated optimization suggestions</CardDescription>
-          </CardHeader>
-          <CardContent className="max-h-[400px] overflow-y-auto">
-            <div className="space-y-4">
-              {recommendations.map((rec) => (
-                <OptimizerRecommendations key={rec.id} recommendation={rec} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
       
-      {/* Resource Utilization and Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <Card className="space-card col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <BarChart3 className="mr-2 h-5 w-5 text-space-blue" />
-              Resource Utilization
-            </CardTitle>
-            <CardDescription>Detailed analysis of mission resources</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[350px]">
-            <Tabs defaultValue="storage">
-              <TabsList className="mb-4">
-                <TabsTrigger value="storage">Storage</TabsTrigger>
-                <TabsTrigger value="consumption">Consumption</TabsTrigger>
-                <TabsTrigger value="forecast">Forecast</TabsTrigger>
-              </TabsList>
-              <TabsContent value="storage" className="h-[300px]">
-                <ResourceUtilizationChart type="storage" />
-              </TabsContent>
-              <TabsContent value="consumption" className="h-[300px]">
-                <ResourceUtilizationChart type="consumption" />
-              </TabsContent>
-              <TabsContent value="forecast" className="h-[300px]">
-                <ResourceUtilizationChart type="forecast" />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-        
-        <Card className="space-card">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
-              System Alerts
-            </CardTitle>
-            <CardDescription>Recent alerts and notifications</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-[300px] overflow-y-auto">
-              {alerts.map((alert) => (
-                <Alert key={alert.id} className={`
-                  ${alert.type === 'critical' ? 'border-red-500 bg-red-500/10' : 
-                    alert.type === 'warning' ? 'border-yellow-500 bg-yellow-500/10' : 
-                    'border-blue-500 bg-blue-500/10'}
-                  ${alert.resolved ? 'opacity-60' : ''}
-                `}>
-                  <div className="flex justify-between">
-                    <AlertTitle className={`
-                      ${alert.type === 'critical' ? 'text-red-500' : 
-                        alert.type === 'warning' ? 'text-yellow-500' : 
-                        'text-blue-500'}
-                    `}>
-                      {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
-                    </AlertTitle>
-                    <span className="text-xs text-gray-500">{alert.time}</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* Mission Progress */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="space-card">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Rocket className="mr-2 h-5 w-5 text-blue-400" />
+                Mission Progress
+              </CardTitle>
+              <CardDescription>Day {missionStats.daysInOrbit} of {missionStats.daysInOrbit + missionStats.daysRemaining}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm">Mission Timeline</span>
+                    <span className="text-sm font-medium">{Math.round((missionStats.daysInOrbit / (missionStats.daysInOrbit + missionStats.daysRemaining)) * 100)}%</span>
                   </div>
-                  <AlertDescription>
-                    {alert.message}
-                  </AlertDescription>
-                </Alert>
+                  <Progress value={Math.round((missionStats.daysInOrbit / (missionStats.daysInOrbit + missionStats.daysRemaining)) * 100)} className="h-2" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-gray-800 p-3">
+                    <p className="text-xs text-gray-400">Next Resupply</p>
+                    <p className="text-lg font-semibold">{missionStats.nextResupply}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 p-3">
+                    <p className="text-xs text-gray-400">Crew Size</p>
+                    <p className="text-lg font-semibold">{missionStats.currentAstronauts}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        
+        {/* Storage Status */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <Card className="space-card">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart2 className="mr-2 h-5 w-5 text-green-400" />
+                Storage Status
+              </CardTitle>
+              <CardDescription>Current utilization and metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm">Overall Capacity Used</span>
+                    <span className="text-sm font-medium">{missionStats.storageUtilization}%</span>
+                  </div>
+                  <Progress 
+                    value={missionStats.storageUtilization} 
+                    className={`h-2 ${
+                      missionStats.storageUtilization > 90 ? 'bg-red-500' : 
+                      missionStats.storageUtilization > 75 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-gray-800 p-3">
+                    <p className="text-xs text-gray-400">Total Items</p>
+                    <p className="text-lg font-semibold">{items.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 p-3">
+                    <p className="text-xs text-gray-400">Containers</p>
+                    <p className="text-lg font-semibold">{containers.length}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        
+        {/* System Status */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <Card className="space-card">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Zap className="mr-2 h-5 w-5 text-purple-400" />
+                System Status
+              </CardTitle>
+              <CardDescription>Alerts and notifications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {missionAlerts.map(alert => (
+                  <div key={alert.id} className="flex items-start space-x-3 p-2 rounded-md bg-gray-900/50">
+                    <div className={`mt-0.5 ${
+                      alert.type === 'warning' ? 'text-yellow-500' : 
+                      alert.type === 'success' ? 'text-green-500' : 'text-blue-500'
+                    }`}>
+                      {alert.type === 'warning' && <AlertCircle size={16} />}
+                      {alert.type === 'success' && <CheckCircle size={16} />}
+                      {alert.type === 'info' && <Settings size={16} />}
+                    </div>
+                    <div>
+                      <p className="text-sm">{alert.message}</p>
+                      <p className="text-xs text-gray-500">{alert.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="ghost" size="sm" className="w-full">View All Alerts</Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="md:col-span-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="resources">Resources</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="space-y-4">
+              <Card className="space-card">
+                <CardHeader>
+                  <CardTitle>Mission Status Overview</CardTitle>
+                  <CardDescription>Cargo management performance</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <MissionStatusChart />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="resources" className="space-y-4">
+              <Card className="space-card">
+                <CardHeader>
+                  <CardTitle>Resource Utilization</CardTitle>
+                  <CardDescription>Storage and supplies analysis</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResourceUtilizationChart />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="timeline" className="space-y-4">
+              <Card className="space-card">
+                <CardHeader>
+                  <CardTitle>Mission Timeline</CardTitle>
+                  <CardDescription>Schedule and key events</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80 flex items-center justify-center">
+                  <p className="text-gray-400">Timeline visualization will appear here</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        <div className="space-y-6">
+          <Card className="space-card">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Settings className="mr-2 h-5 w-5 text-blue-400" />
+                Optimization Engine
+              </CardTitle>
+              <CardDescription>AI-powered recommendations</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recommendations.map(recommendation => (
+                <OptimizerRecommendations 
+                  key={recommendation.id}
+                  recommendation={recommendation}
+                />
               ))}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={optimizeCargoPlacement}
+                className="w-full"
+              >
+                Run Full Optimization
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </div>
   );

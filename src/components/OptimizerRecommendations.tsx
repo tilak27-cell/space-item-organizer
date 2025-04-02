@@ -37,7 +37,7 @@ const OptimizerRecommendations = ({ recommendation }: RecommendationProps) => {
             <Lightbulb size={16} />
           </div>
           <div>
-            <h4 className="text-sm font-medium">{recommendation.title}</h4>
+            <h4 className="text-sm font-medium text-white dark:text-white">{recommendation.title}</h4>
             <p className="text-xs text-gray-400 mt-0.5">{recommendation.description}</p>
             <div className="flex items-center mt-2 space-x-3">
               <div className="flex items-center text-xs text-gray-400">
