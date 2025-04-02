@@ -18,6 +18,9 @@ import Rearrangement from "./pages/Rearrangement";
 import WasteManagement from "./pages/WasteManagement";
 import TimeSimulation from "./pages/TimeSimulation";
 import Logs from "./pages/Logs";
+import MissionControl from "./pages/MissionControl";
+import CargoVisualizer from "./pages/CargoVisualizer";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 // Add styles for improved text visibility
@@ -46,6 +49,9 @@ const AnimatedRoutes = () => {
             <Route path="rearrangement" element={<Rearrangement />} />
             <Route path="waste-management" element={<WasteManagement />} />
             <Route path="time-simulation" element={<TimeSimulation />} />
+            <Route path="mission-control" element={<MissionControl />} />
+            <Route path="cargo-visualizer" element={<CargoVisualizer />} />
+            <Route path="analytics" element={<Analytics />} />
             <Route path="logs" element={<Logs />} />
           </Route>
           <Route path="*" element={<NotFound />} />
