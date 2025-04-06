@@ -3,16 +3,7 @@
 
 This guide will help you set up your Supabase project to work with the Space Cargo Management application.
 
-## 1. Create Supabase Tables
-
-Copy and paste the SQL from `supabase/schema.sql` into the Supabase SQL Editor and run it. 
-This will create the following tables:
-
-- `cargo_items` - For storing cargo item information
-- `storage_containers` - For storing container information
-- `action_logs` - For tracking all actions in the system
-
-## 2. Set Environment Variables
+## 1. Create a .env.local File
 
 Create a `.env.local` file in the root of your project with the following variables:
 
@@ -24,6 +15,17 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 Replace `your_supabase_url_here` and `your_supabase_anon_key_here` with your actual Supabase URL and anon key.
 
 You can find these values in your Supabase dashboard under Project Settings > API.
+
+**Important**: After creating or updating the `.env.local` file, you must restart the development server for the changes to take effect.
+
+## 2. Create Supabase Tables
+
+Copy and paste the SQL from `supabase/schema.sql` into the Supabase SQL Editor and run it. 
+This will create the following tables:
+
+- `cargo_items` - For storing cargo item information
+- `storage_containers` - For storing container information
+- `action_logs` - For tracking all actions in the system
 
 ## 3. Enable Authentication
 
@@ -61,7 +63,8 @@ Open the application and check the database status indicator on the dashboard. I
 
 If you encounter issues:
 
-1. Check that your environment variables are correct
-2. Verify that all tables were created successfully
-3. Make sure RLS policies are set up as defined in the schema
-4. Check the browser console for any specific error messages
+1. Check that your environment variables are correct in the `.env.local` file
+2. Restart the development server after making changes to `.env.local`
+3. Verify that all tables were created successfully
+4. Make sure RLS policies are set up as defined in the schema
+5. Check the browser console for any specific error messages
