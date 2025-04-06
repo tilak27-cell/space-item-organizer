@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertCircle } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -13,16 +15,27 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
     try {
       const user = await signIn({ email, password });
       if (user) {
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${email}`,
+        });
         navigate('/');
+      } else {
+        setError('Invalid email or password');
       }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during sign in');
+      console.error('Sign in error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -31,10 +44,27 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
+    
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setIsLoading(false);
+      return;
+    }
     
     try {
-      await signUp({ email, password });
-      // Don't navigate automatically after signup as user needs to verify email
+      const user = await signUp({ email, password });
+      if (user) {
+        toast({
+          title: "Signup Successful",
+          description: "Please check your email for verification",
+        });
+      } else {
+        setError('Failed to create account');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during sign up');
+      console.error('Sign up error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -58,6 +88,13 @@ const Auth = () => {
           </CardHeader>
           
           <CardContent>
+            {error && (
+              <div className="bg-red-900/30 border border-red-800 text-red-300 p-3 rounded-md mb-4 flex items-start">
+                <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                <p className="text-sm">{error}</p>
+              </div>
+            )}
+            
             <TabsContent value="login">
               <form onSubmit={handleSignIn}>
                 <div className="space-y-4">
@@ -136,10 +173,14 @@ const Auth = () => {
             </TabsContent>
           </CardContent>
           
-          <CardFooter className="flex justify-center">
+          <CardFooter className="flex flex-col space-y-4">
             <p className="text-sm text-gray-400">
               Space Cargo Management System &copy; {new Date().getFullYear()}
             </p>
+            <div className="text-xs text-center text-gray-500 w-full">
+              <p>To test the application, create a new account or use these credentials:</p>
+              <p className="font-mono mt-1">demo@spacecargo.com / spacecargo123</p>
+            </div>
           </CardFooter>
         </Tabs>
       </Card>

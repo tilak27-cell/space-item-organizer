@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Search, RotateCcw, Trash, Clock, FileText } from 'lucide-react';
+import { Package, Search, Clock, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSpaceCargo } from '@/contexts/SpaceCargoContext';
+import SupabaseStatus from '@/components/SupabaseStatus';
 
 const Dashboard = () => {
   const { 
@@ -32,6 +33,9 @@ const Dashboard = () => {
         <h1 className="text-4xl font-bold mb-4">Space Cargo Management</h1>
         <p className="text-xl text-gray-400">Next-generation cargo tracking and management system for space logistics</p>
       </div>
+      
+      {/* Supabase Status Component */}
+      <SupabaseStatus />
       
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
