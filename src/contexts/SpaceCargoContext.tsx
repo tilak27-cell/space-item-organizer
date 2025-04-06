@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CargoItem, StorageContainer, ActionLog, PlacementRecommendation, RearrangementPlan, Priority, Status } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from './AuthContext';
+import { fetchItems, fetchContainers, fetchLogs, addItem as apiAddItem, updateItem as apiUpdateItem, addContainer as apiAddContainer, addLog as apiAddLog } from '@/lib/api';
 
 interface SpaceCargoContextType {
   items: CargoItem[];
@@ -9,15 +11,16 @@ interface SpaceCargoContextType {
   logs: ActionLog[];
   recommendations: PlacementRecommendation[];
   rearrangementPlan: RearrangementPlan | null;
+  isLoading: boolean;
   
   // Item actions
-  addItem: (item: Omit<CargoItem, 'id' | 'lastModified' | 'usageCount'>) => void;
-  updateItem: (id: string, updates: Partial<CargoItem>) => void;
-  retrieveItem: (id: string) => void;
-  markAsWaste: (id: string) => void;
+  addItem: (item: Omit<CargoItem, 'id' | 'lastModified' | 'usageCount'>) => Promise<void>;
+  updateItem: (id: string, updates: Partial<CargoItem>) => Promise<void>;
+  retrieveItem: (id: string) => Promise<void>;
+  markAsWaste: (id: string) => Promise<void>;
   
   // Container actions
-  addContainer: (container: Omit<StorageContainer, 'id' | 'usedCapacity' | 'items'>) => void;
+  addContainer: (container: Omit<StorageContainer, 'id' | 'usedCapacity' | 'items'>) => Promise<void>;
   
   // CSV import/export
   importItems: (csv: File) => Promise<void>;
@@ -37,336 +40,188 @@ interface SpaceCargoContextType {
 
 const SpaceCargoContext = createContext<SpaceCargoContextType | undefined>(undefined);
 
-// Sample data for initial state
-const sampleItems: CargoItem[] = [
-  {
-    id: '1',
-    name: 'Cargo Item 1',
-    priority: 'medium',
-    status: 'stored',
-    location: 'Bay 1',
-    weight: 6,
-    volume: 16,
-    lastModified: new Date(),
-    usageCount: 0
-  },
-  {
-    id: '2',
-    name: 'Cargo Item 2',
-    priority: 'medium',
-    status: 'stored',
-    location: 'Bay 2',
-    weight: 61,
-    volume: 8,
-    lastModified: new Date(),
-    usageCount: 0
-  },
-  {
-    id: '3',
-    name: 'Cargo Item 3',
-    priority: 'high',
-    status: 'waste',
-    location: 'Bay 3',
-    weight: 99,
-    volume: 27,
-    lastModified: new Date(),
-    usageCount: 5
-  },
-  {
-    id: '4',
-    name: 'Cargo Item 4',
-    priority: 'medium',
-    status: 'in-transit',
-    location: 'Bay 4',
-    weight: 77,
-    volume: 17,
-    lastModified: new Date(),
-    usageCount: 0
-  },
-  {
-    id: '5',
-    name: 'Cargo Item 5',
-    priority: 'low',
-    status: 'stored',
-    location: 'Bay 9',
-    weight: 25,
-    volume: 12,
-    lastModified: new Date(),
-    usageCount: 0
-  },
-  {
-    id: '6',
-    name: 'Cargo Item 6',
-    priority: 'low',
-    status: 'stored',
-    location: 'Bay 8',
-    weight: 32,
-    volume: 18,
-    lastModified: new Date(),
-    usageCount: 0
-  }
-];
-
-const sampleContainers: StorageContainer[] = [
-  {
-    id: '1',
-    name: 'Bay 1',
-    capacity: 100,
-    usedCapacity: 16,
-    location: 'Module A',
-    items: [sampleItems[0]]
-  },
-  {
-    id: '2',
-    name: 'Bay 2',
-    capacity: 100,
-    usedCapacity: 8,
-    location: 'Module A',
-    items: [sampleItems[1]]
-  },
-  {
-    id: '3',
-    name: 'Bay 3',
-    capacity: 100,
-    usedCapacity: 27,
-    location: 'Module B',
-    items: [sampleItems[2]]
-  },
-  {
-    id: '4',
-    name: 'Bay 4',
-    capacity: 100,
-    usedCapacity: 17,
-    location: 'Module B',
-    items: [sampleItems[3]]
-  },
-  {
-    id: '5',
-    name: 'Bay 5',
-    capacity: 100,
-    usedCapacity: 0,
-    location: 'Module C',
-    items: []
-  },
-  {
-    id: '6',
-    name: 'Bay 6',
-    capacity: 100,
-    usedCapacity: 0,
-    location: 'Module C',
-    items: []
-  },
-  {
-    id: '7',
-    name: 'Bay 7',
-    capacity: 100,
-    usedCapacity: 0,
-    location: 'Module D',
-    items: []
-  },
-  {
-    id: '8',
-    name: 'Bay 8',
-    capacity: 100,
-    usedCapacity: 18,
-    location: 'Module D',
-    items: [sampleItems[5]]
-  },
-  {
-    id: '9',
-    name: 'Bay 9',
-    capacity: 100,
-    usedCapacity: 12,
-    location: 'Module E',
-    items: [sampleItems[4]]
-  },
-  {
-    id: '10',
-    name: 'Bay 10',
-    capacity: 100,
-    usedCapacity: 0,
-    location: 'Module E',
-    items: []
-  },
-  {
-    id: '11',
-    name: 'Bay 11',
-    capacity: 100,
-    usedCapacity: 0,
-    location: 'Module F',
-    items: []
-  },
-  {
-    id: '12',
-    name: 'Bay 12',
-    capacity: 100,
-    usedCapacity: 0,
-    location: 'Module F',
-    items: []
-  }
-];
-
-const sampleLogs: ActionLog[] = [
-  {
-    id: '1',
-    timestamp: new Date(new Date().setDate(new Date().getDate() - 5)),
-    action: 'place',
-    itemId: '1',
-    itemName: 'Cargo Item 1',
-    location: 'Bay 1',
-    user: 'Astronaut Smith'
-  },
-  {
-    id: '2',
-    timestamp: new Date(new Date().setDate(new Date().getDate() - 3)),
-    action: 'retrieve',
-    itemId: '3',
-    itemName: 'Cargo Item 3',
-    location: 'Bay 3',
-    user: 'Astronaut Johnson'
-  },
-  {
-    id: '3',
-    timestamp: new Date(new Date().setDate(new Date().getDate() - 1)),
-    action: 'dispose',
-    itemId: '3',
-    itemName: 'Cargo Item 3',
-    user: 'Astronaut Wilson',
-    details: 'Item marked as waste due to expiration'
-  }
-];
-
 export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CargoItem[]>(sampleItems);
-  const [containers, setContainers] = useState<StorageContainer[]>(sampleContainers);
-  const [logs, setLogs] = useState<ActionLog[]>(sampleLogs);
+  const { user } = useAuth();
+  const [items, setItems] = useState<CargoItem[]>([]);
+  const [containers, setContainers] = useState<StorageContainer[]>([]);
+  const [logs, setLogs] = useState<ActionLog[]>([]);
   const [recommendations, setRecommendations] = useState<PlacementRecommendation[]>([]);
   const [rearrangementPlan, setRearrangementPlan] = useState<RearrangementPlan | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Load data from Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const [fetchedItems, fetchedContainers, fetchedLogs] = await Promise.all([
+          fetchItems(),
+          fetchContainers(),
+          fetchLogs()
+        ]);
+        
+        setItems(fetchedItems);
+        setContainers(fetchedContainers);
+        setLogs(fetchedLogs);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load data from the database",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [user]);
 
   // Add a new cargo item
-  const addItem = (item: Omit<CargoItem, 'id' | 'lastModified' | 'usageCount'>) => {
-    const newItem: CargoItem = {
-      ...item,
-      id: `item-${Date.now()}`,
-      lastModified: new Date(),
-      usageCount: 0
-    };
-    
-    setItems((prev) => [...prev, newItem]);
-    
-    // Update container
-    setContainers((prev) => 
-      prev.map((container) => 
-        container.name === newItem.location
-          ? {
-              ...container,
-              usedCapacity: container.usedCapacity + newItem.volume,
-              items: [...container.items, newItem]
-            }
-          : container
-      )
-    );
-    
-    // Add log
-    addLog({
-      action: 'place',
-      itemId: newItem.id,
-      itemName: newItem.name,
-      location: newItem.location,
-      user: 'Current User',
-      details: `Added ${newItem.name} to ${newItem.location}`
-    });
-    
-    toast({
-      title: "Item Added",
-      description: `${newItem.name} has been added to ${newItem.location}`,
-    });
-  };
-  
-  // Add a log entry
-  const addLog = (log: Omit<ActionLog, 'id' | 'timestamp'>) => {
-    const newLog: ActionLog = {
-      ...log,
-      id: `log-${Date.now()}`,
-      timestamp: new Date()
-    };
-    
-    setLogs((prev) => [newLog, ...prev]);
-  };
-  
-  // Update an existing item
-  const updateItem = (id: string, updates: Partial<CargoItem>) => {
-    setItems((prev) => 
-      prev.map((item) => 
-        item.id === id
-          ? { ...item, ...updates, lastModified: new Date() }
-          : item
-      )
-    );
-    
-    // If location changed, update containers
-    if (updates.location) {
-      const item = items.find((item) => item.id === id);
-      if (item) {
-        // Remove from old container
-        setContainers((prev) => 
-          prev.map((container) => 
-            container.name === item.location
-              ? {
-                  ...container,
-                  usedCapacity: container.usedCapacity - item.volume,
-                  items: container.items.filter((i) => i.id !== id)
-                }
-              : container
-          )
-        );
+  const addItem = async (item: Omit<CargoItem, 'id' | 'lastModified' | 'usageCount'>) => {
+    try {
+      const newItem = await apiAddItem(item);
+      
+      if (newItem) {
+        setItems((prev) => [...prev, newItem]);
         
-        // Add to new container
+        // Update container
         setContainers((prev) => 
           prev.map((container) => 
-            container.name === updates.location
+            container.name === newItem.location
               ? {
                   ...container,
-                  usedCapacity: container.usedCapacity + item.volume,
-                  items: [...container.items, { ...item, location: updates.location as string }]
+                  usedCapacity: container.usedCapacity + newItem.volume,
+                  items: [...container.items, newItem]
                 }
               : container
           )
         );
         
         // Add log
-        addLog({
-          action: 'relocate',
-          itemId: id,
-          itemName: item.name,
-          location: updates.location,
-          user: 'Current User',
-          details: `Moved ${item.name} from ${item.location} to ${updates.location}`
+        const logEntry = await apiAddLog({
+          action: 'place',
+          itemId: newItem.id,
+          itemName: newItem.name,
+          location: newItem.location,
+          user: user?.email || 'Current User',
+          details: `Added ${newItem.name} to ${newItem.location}`
         });
         
+        if (logEntry) {
+          setLogs((prev) => [logEntry, ...prev]);
+        }
+        
         toast({
-          title: "Item Relocated",
-          description: `${item.name} has been moved to ${updates.location}`,
+          title: "Item Added",
+          description: `${newItem.name} has been added to ${newItem.location}`,
         });
       }
+    } catch (error) {
+      console.error('Error adding item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Update an existing item
+  const updateItem = async (id: string, updates: Partial<CargoItem>) => {
+    try {
+      const updatedItem = await apiUpdateItem(id, updates);
+      
+      if (updatedItem) {
+        setItems((prev) => 
+          prev.map((item) => 
+            item.id === id ? updatedItem : item
+          )
+        );
+        
+        // If location changed, update containers
+        if (updates.location) {
+          const item = items.find((item) => item.id === id);
+          if (item) {
+            // Remove from old container
+            setContainers((prev) => 
+              prev.map((container) => 
+                container.name === item.location
+                  ? {
+                      ...container,
+                      usedCapacity: container.usedCapacity - item.volume,
+                      items: container.items.filter((i) => i.id !== id)
+                    }
+                  : container
+              )
+            );
+            
+            // Add to new container
+            setContainers((prev) => 
+              prev.map((container) => 
+                container.name === updates.location
+                  ? {
+                      ...container,
+                      usedCapacity: container.usedCapacity + item.volume,
+                      items: [...container.items, updatedItem]
+                    }
+                  : container
+              )
+            );
+            
+            // Add log
+            const logEntry = await apiAddLog({
+              action: 'relocate',
+              itemId: id,
+              itemName: item.name,
+              location: updates.location,
+              user: user?.email || 'Current User',
+              details: `Moved ${item.name} from ${item.location} to ${updates.location}`
+            });
+            
+            if (logEntry) {
+              setLogs((prev) => [logEntry, ...prev]);
+            }
+            
+            toast({
+              title: "Item Relocated",
+              description: `${item.name} has been moved to ${updates.location}`,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update item",
+        variant: "destructive"
+      });
     }
   };
   
   // Retrieve an item (increase usage count)
-  const retrieveItem = (id: string) => {
+  const retrieveItem = async (id: string) => {
     const item = items.find((item) => item.id === id);
     if (item) {
-      updateItem(id, { usageCount: item.usageCount + 1 });
+      await updateItem(id, { usageCount: item.usageCount + 1 });
       
       // Add log
-      addLog({
+      const logEntry = await apiAddLog({
         action: 'retrieve',
         itemId: id,
         itemName: item.name,
         location: item.location,
-        user: 'Current User',
+        user: user?.email || 'Current User',
         details: `Retrieved ${item.name} from ${item.location}`
       });
+      
+      if (logEntry) {
+        setLogs((prev) => [logEntry, ...prev]);
+      }
       
       toast({
         title: "Item Retrieved",
@@ -376,19 +231,23 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
   
   // Mark item as waste
-  const markAsWaste = (id: string) => {
+  const markAsWaste = async (id: string) => {
     const item = items.find((item) => item.id === id);
     if (item) {
-      updateItem(id, { status: 'waste' });
+      await updateItem(id, { status: 'waste' });
       
       // Add log
-      addLog({
+      const logEntry = await apiAddLog({
         action: 'dispose',
         itemId: id,
         itemName: item.name,
-        user: 'Current User',
+        user: user?.email || 'Current User',
         details: `Marked ${item.name} as waste`
       });
+      
+      if (logEntry) {
+        setLogs((prev) => [logEntry, ...prev]);
+      }
       
       toast({
         title: "Item Marked as Waste",
@@ -398,20 +257,26 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
   
   // Add a new container
-  const addContainer = (container: Omit<StorageContainer, 'id' | 'usedCapacity' | 'items'>) => {
-    const newContainer: StorageContainer = {
-      ...container,
-      id: `container-${Date.now()}`,
-      usedCapacity: 0,
-      items: []
-    };
-    
-    setContainers((prev) => [...prev, newContainer]);
-    
-    toast({
-      title: "Container Added",
-      description: `${newContainer.name} has been added to the system`,
-    });
+  const addContainer = async (container: Omit<StorageContainer, 'id' | 'usedCapacity' | 'items'>) => {
+    try {
+      const newContainer = await apiAddContainer(container);
+      
+      if (newContainer) {
+        setContainers((prev) => [...prev, newContainer]);
+        
+        toast({
+          title: "Container Added",
+          description: `${newContainer.name} has been added to the system`,
+        });
+      }
+    } catch (error) {
+      console.error('Error adding container:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add container",
+        variant: "destructive"
+      });
+    }
   };
   
   // Import items from CSV
@@ -419,13 +284,13 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const text = event.target?.result as string;
           const lines = text.split('\n');
           const headers = lines[0].split(',');
           
-          const newItems: CargoItem[] = [];
+          const importPromises = [];
           
           for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
@@ -449,43 +314,24 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             });
             
             // Add missing required fields
-            const newItem: CargoItem = {
-              id: `item-${Date.now()}-${i}`,
+            const newItem = {
               name: item.name || `Imported Item ${i}`,
               priority: item.priority || 'medium',
               status: item.status || 'stored',
               location: item.location || 'Unassigned',
               weight: item.weight || 0,
               volume: item.volume || 0,
-              lastModified: new Date(),
-              usageCount: 0,
               expirationDate: item.expirationDate
             };
             
-            newItems.push(newItem);
+            importPromises.push(addItem(newItem));
           }
           
-          // Add all the new items
-          setItems((prev) => [...prev, ...newItems]);
-          
-          // Update containers
-          newItems.forEach((item) => {
-            setContainers((prev) => 
-              prev.map((container) => 
-                container.name === item.location
-                  ? {
-                      ...container,
-                      usedCapacity: container.usedCapacity + item.volume,
-                      items: [...container.items, item]
-                    }
-                  : container
-              )
-            );
-          });
+          await Promise.all(importPromises);
           
           toast({
             title: "Items Imported",
-            description: `${newItems.length} items have been imported`,
+            description: `${importPromises.length} items have been imported`,
           });
           
           resolve();
@@ -519,13 +365,13 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const text = event.target?.result as string;
           const lines = text.split('\n');
           const headers = lines[0].split(',');
           
-          const newContainers: StorageContainer[] = [];
+          const importPromises = [];
           
           for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
@@ -543,24 +389,20 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             });
             
             // Add missing required fields
-            const newContainer: StorageContainer = {
-              id: `container-${Date.now()}-${i}`,
+            const newContainer = {
               name: container.name || `Imported Container ${i}`,
               capacity: container.capacity || 100,
-              usedCapacity: 0,
-              location: container.location || 'Unassigned',
-              items: []
+              location: container.location || 'Unassigned'
             };
             
-            newContainers.push(newContainer);
+            importPromises.push(addContainer(newContainer));
           }
           
-          // Add all the new containers
-          setContainers((prev) => [...prev, ...newContainers]);
+          await Promise.all(importPromises);
           
           toast({
             title: "Containers Imported",
-            description: `${newContainers.length} containers have been imported`,
+            description: `${importPromises.length} containers have been imported`,
           });
           
           resolve();
@@ -632,14 +474,21 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       prev.map((item) => {
         if (item.expirationDate && item.expirationDate <= today && item.status !== 'waste') {
           // Add log for expired item
-          setTimeout(() => {
-            addLog({
+          setTimeout(async () => {
+            const logEntry = await apiAddLog({
               action: 'dispose',
               itemId: item.id,
               itemName: item.name,
               user: 'System',
               details: `${item.name} has expired and has been marked as waste`
             });
+            
+            if (logEntry) {
+              setLogs((prev) => [logEntry, ...prev]);
+            }
+            
+            // Also update in database
+            await apiUpdateItem(item.id, { status: 'waste', lastModified: today });
           }, 0);
           
           return { ...item, status: 'waste', lastModified: today };
@@ -774,6 +623,7 @@ export const SpaceCargoProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         logs,
         recommendations,
         rearrangementPlan,
+        isLoading,
         addItem,
         updateItem,
         retrieveItem,
