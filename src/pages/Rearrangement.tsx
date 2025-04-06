@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useSpaceCargo } from '@/contexts/SpaceCargoContext';
-import { useToast } from "@/hooks/use-toast";
 import ItemCard from '@/components/ItemCard';
 
 const Rearrangement = () => {
@@ -14,11 +13,8 @@ const Rearrangement = () => {
     rearrangementPlan, 
     items, 
     containers, 
-    getItemsByStatus,
-    executeRearrangementPlan
+    getItemsByStatus 
   } = useSpaceCargo();
-  
-  const { toast } = useToast();
   
   const inTransitItems = getItemsByStatus('in-transit');
   
@@ -33,14 +29,6 @@ const Rearrangement = () => {
   
   // Do we have enough space without rearrangement?
   const needsRearrangement = spaceNeeded > availableSpace;
-  
-  const handleExecuteRearrangement = () => {
-    executeRearrangementPlan();
-    toast({
-      title: "Rearrangement Plan Executed",
-      description: "Items have been successfully moved according to the plan",
-    });
-  };
   
   return (
     <div className="container mx-auto">
@@ -133,10 +121,7 @@ const Rearrangement = () => {
             </div>
             
             <div className="mt-8 flex justify-end">
-              <Button 
-                className="bg-space-blue text-white hover:bg-blue-600"
-                onClick={handleExecuteRearrangement}
-              >
+              <Button className="bg-space-blue text-white hover:bg-blue-600">
                 <RotateCcw className="h-5 w-5 mr-2" />
                 Execute Rearrangement Plan
               </Button>
