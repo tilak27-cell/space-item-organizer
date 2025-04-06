@@ -23,7 +23,7 @@ const SupabaseStatus = () => {
         }
 
         // Simple query to test connection
-        const { data, error } = await supabase.from('cargo_items').select('count()', { count: 'exact' });
+        const { data, error } = await supabase.from('cargo_items').select('count()', { count: 'exact' }).limit(1);
         
         if (error) {
           console.error('Supabase connection error:', error);

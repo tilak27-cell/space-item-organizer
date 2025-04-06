@@ -20,12 +20,82 @@ You can find these values in your Supabase dashboard under Project Settings > AP
 
 ## 2. Create Supabase Tables
 
-Copy and paste the SQL from `supabase/schema.sql` into the Supabase SQL Editor and run it. 
-This will create the following tables:
+In your Supabase dashboard, go to the SQL Editor and run the following SQL to create the required tables:
 
-- `cargo_items` - For storing cargo item information
-- `storage_containers` - For storing container information
-- `action_logs` - For tracking all actions in the system
+```sql
+-- Create cargo_items table
+CREATE TABLE public.cargo_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    priority TEXT NOT NULL CHECK (priority IN ('high', 'medium', 'low')),
+    status TEXT NOT NULL CHECK (status IN ('stored', 'in-transit', 'waste')),
+    location TEXT,
+    weight FLOAT NOT NULL,
+    volume FLOAT NOT NULL,
+    last_modified TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    expiration_date TIMESTAMP WITH TIME ZONE,
+    usage_count INTEGER DEFAULT 0,
+    user_id UUID REFERENCES auth.users(id)
+);
+
+-- Create storage_containers table
+CREATE TABLE public.storage_containers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL UNIQUE,
+    capacity FLOAT NOT NULL,
+    used_capacity FLOAT DEFAULT 0,
+    location TEXT,
+    user_id UUID REFERENCES auth.users(id)
+);
+
+-- Create action_logs table
+CREATE TABLE public.action_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    action TEXT NOT NULL,
+    item_id UUID REFERENCES public.cargo_items(id),
+    item_name TEXT,
+    location TEXT,
+    user TEXT,
+    details TEXT,
+    user_id UUID REFERENCES auth.users(id)
+);
+
+-- Set up Row Level Security (RLS)
+ALTER TABLE public.cargo_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.storage_containers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.action_logs ENABLE ROW LEVEL SECURITY;
+
+-- Create policies
+CREATE POLICY "Users can view their own items" 
+ON public.cargo_items FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own items" 
+ON public.cargo_items FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own items" 
+ON public.cargo_items FOR UPDATE 
+USING (auth.uid() = user_id);
+
+-- Similar policies for storage_containers and action_logs
+CREATE POLICY "Users can view their own containers" 
+ON public.storage_containers FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own containers" 
+ON public.storage_containers FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view their own logs" 
+ON public.action_logs FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own logs" 
+ON public.action_logs FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+```
 
 ## 3. Enable Authentication
 
@@ -68,3 +138,4 @@ If you encounter issues:
 3. Verify that all tables were created successfully
 4. Make sure RLS policies are set up as defined in the schema
 5. Check the browser console for any specific error messages
+6. If the database connection fails, you may need to set up CORS in your Supabase project settings

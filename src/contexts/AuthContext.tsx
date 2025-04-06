@@ -20,34 +20,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check for current session
     const checkUser = async () => {
-      setIsLoading(true);
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      setIsLoading(false);
+      try {
+        setIsLoading(true);
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Failed to get current user:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     checkUser();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    // Try to set up auth listener if Supabase is configured
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    try {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+      });
+      subscription = data.subscription;
+    } catch (error) {
+      console.error('Failed to set up auth listener:', error);
+    }
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
   const signIn = async (credentials: UserCredentials) => {
-    return await authSignIn(credentials);
+    try {
+      return await authSignIn(credentials);
+    } catch (error) {
+      console.error('Error in signIn:', error);
+      return null;
+    }
   };
 
   const signUp = async (credentials: UserCredentials) => {
-    return await authSignUp(credentials);
+    try {
+      return await authSignUp(credentials);
+    } catch (error) {
+      console.error('Error in signUp:', error);
+      return null;
+    }
   };
 
   const signOut = async () => {
-    return await authSignOut();
+    try {
+      return await authSignOut();
+    } catch (error) {
+      console.error('Error in signOut:', error);
+      return false;
+    }
   };
 
   return (
